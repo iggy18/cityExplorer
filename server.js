@@ -34,3 +34,6 @@ app.get('/location', (request, response) => {
     handleWeather();
  });
 
+ app.listen(PORT, () => {
+    console.log(`this works on port ${PORT}`);
+  });
