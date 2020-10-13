@@ -8,6 +8,10 @@ const cors = require('cors');
 //assign port 
 const PORT = process.env.PORT || 3000;
 
+app.get('/', (request, response) => {
+    response.send('home page');
+});
+
 function Location(city, where) {
     this.search_query = city;
     this.formatted_query = where[0].display_name;
