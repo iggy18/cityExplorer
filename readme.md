@@ -22,9 +22,8 @@
 -->
 
 
-Number and name of feature: 
+Number and name of feature: day one
 Estimate of time needed to complete: 4hours
 Start time: 2:00
-Finish time:
-Actual time needed to complete:
-
+Finish time: 10:05
+Actual time needed to complete: 8 hours
