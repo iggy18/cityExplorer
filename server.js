@@ -25,10 +25,9 @@ function Location(where, city) {
     this.longitude = where[0].lon;
 }
 
-function Weather(forcast, time) {
-    this.forcast = forcast.weather.description;
-    this.time = time.vaild_date;
-    this.city = city;
+function Weather(forecast) {
+    this.forecast = forecast.weather.description;
+    this.time = forecast.valid_date;
 }
 
 
@@ -46,10 +45,9 @@ function handleLocation(request, response) {
 function handleWeather(request, response) {
     try {
         let dataArr = [];
-        let weather = require('./data/weather.json')
+        let weather = require('./data/weather.json');
         weather.data.forEach(pass => {
-            let city = request.query.city;
-            let results = new Weather(pass, city);
+            let results = new Weather(pass);
             dataArr.push(results);
         });
         response.send(dataArr);
@@ -58,6 +56,9 @@ function handleWeather(request, response) {
     }
 }
 
+app.get('*', (req, res) => {
+    response.status(404).send('we got nothing. you really messed up this time');
+})
 
 app.listen(PORT, () => {
     console.log(`this works on port ${PORT}`);
