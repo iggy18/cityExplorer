@@ -6,6 +6,7 @@ const superagent = require('superagent'); //npm i superagent allows to make requ
 const express = require('express'); //npm i express
 const app = express();
 const cors = require('cors'); // npm i cors
+const pg = require('pg');
 const GEO_API_KEY = process.env.GEO_API_KEY;
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const TRAIL_API_KEY = process.env.TRAIL_API_KEY;
