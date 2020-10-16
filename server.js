@@ -7,12 +7,32 @@ const express = require('express'); //npm i express
 const app = express();
 const cors = require('cors'); // npm i cors
 const pg = require('pg');
-const GEO_API_KEY = process.env.GEO_API_KEY;
+const GEO_API_KEY = process.env.GEO_API_KEY; //keys are in the env
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const TRAIL_API_KEY = process.env.TRAIL_API_KEY;
 
 //1 assign port 
 const PORT = process.env.PORT;
+//set up a database
+const client = new pg.Client(process.env.DATABASE_URL);
+
+app.get('/add,', (request, response) => { // DATABASE STUFF
+    const latitude = request.query.latitude;
+    const longitude = request.query.longitude;
+
+    //insert into people = add something to the people table
+    // (FIRST ,LAST) val (1,2) = update first name and last name with those values from client query
+    let SQL = 'INSERT INTO city_explorer (latitude, longitude) VALUES ($1, $2) RETURNING *;';
+
+    let location = [latitude, longitude];
+    client.query(SQL, location)
+        .then(results => {
+            response.status(200).json(results);
+        })
+        .catch(err => {
+            console.error('db error:', err);
+        })
+});
 
 app.get('/', (request, response) => {
     response.send('home page');
@@ -23,7 +43,7 @@ app.use(cors()); // if you dont use this you'll get a coors error.
 app.get('/location', handleLocation);
 app.get('/weather', handleWeather);
 app.get('/trails', handleTrails);
-
+// app.get('/add', handleAdd);
 // this builds an object with the data coming in.
 function Location(geoData, city) {
     this.search_query = city;
@@ -56,6 +76,29 @@ function handleLocation(request, response) {
     try {
         const city = request.query.city;
         const url = `https://us1.locationiq.com/v1/search.php?key=${GEO_API_KEY}&q=${city}&format=json&limit=1`
+        let search_query = [request.query.city]; //PG wants request in square brackets
+        let SQL = 'SELECT * FROM location WHERE search_query = $1;';  //checks table to see if anything is there. 
+        client.query(SQL, search_query)
+            .then(data => {
+                if (data.rows.length > 0) {
+                    reposnse.status(200).send(data.rows[0]);
+                } else {
+                    superagent.get(url) //hey super agent go to this url
+                        .then(data => {         // and get this data
+                            const geoData = data.body[0];
+                            const locationData = new Location(geoData, city);
+                            let SQL = 'INSERT INTO location (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4);';    //saving the local record information in the database
+                            let saveValue = [locationData.search_query, locationData.formatted_query, locationData.latitude, localData.longitude] //locationdata is an object, and search_query... is properties of that object
+                            client.query(SQL, saveValue)
+                                .then(() => {
+                                    response.json(locationData);
+                                })
+                        })
+                        .catch(err => {
+                            console.error('return', err)
+                        });
+                }
+            })
         // sudo https://baseurl${api key} & query input/query(city) & fileType & numberOf
         superagent.get(url) //hey super agent go to this url
             .then(data => {         // and get this data
@@ -74,7 +117,7 @@ function handleWeather(request, response) {
         const longitude = request.query.longitude;
 
         const url = `https://api.weatherbit.io/v2.0/forecast/daily?lat=${latitude}&lon=${longitude}&key=${WEATHER_API_KEY}&format=json`;
-        
+
         superagent.get(url)
             .then(data => {
 
@@ -110,6 +153,13 @@ app.get('*', (request, response) => {
     response.status(404).send('we got nothing. you really messed up this time');
 })
 
-app.listen(PORT, () => {
-    console.log(`this works on port ${PORT}`);
-});
+client.connect() //connect client to database
+    .then(() => {
+        app.listen(PORT, () => { // start server after I've connected
+            console.log(`server works on ${PORT}`); //message if works
+        });
+    })
+    .catch(err => {
+        console.error('connection error:', err); //message if error
+    });
+
