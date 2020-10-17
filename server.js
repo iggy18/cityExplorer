@@ -81,14 +81,14 @@ function handleLocation(request, response) {
         client.query(SQL, search_query)
             .then(data => {
                 if (data.rows.length > 0) {
-                    reposnse.status(200).send(data.rows[0]);
+                    response.status(200).send(data.rows[0]);
                 } else {
                     superagent.get(url) //hey super agent go to this url
                         .then(data => {         // and get this data
                             const geoData = data.body[0];
                             const locationData = new Location(geoData, city);
                             let SQL = 'INSERT INTO location (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4);';    //saving the local record information in the database
-                            let saveValue = [locationData.search_query, locationData.formatted_query, locationData.latitude, localData.longitude] //locationdata is an object, and search_query... is properties of that object
+                            let saveValue = [locationData.search_query, locationData.formatted_query, locationData.latitude, locationData.longitude] //locationdata is an object, and search_query... is properties of that object
                             client.query(SQL, saveValue)
                                 .then(() => {
                                     response.json(locationData);
@@ -100,12 +100,12 @@ function handleLocation(request, response) {
                 }
             })
         // sudo https://baseurl${api key} & query input/query(city) & fileType & numberOf
-        superagent.get(url) //hey super agent go to this url
-            .then(data => {         // and get this data
-                const geoData = data.body[0];
-                const locationData = new Location(geoData, city);
-                response.json(locationData);
-            });
+        // superagent.get(url) //hey super agent go to this url
+        //     .then(data => {         // and get this data
+        //         const geoData = data.body[0];
+        //         const locationData = new Location(geoData, city);
+        //         response.json(locationData);
+            // });
     } catch (error) {
         response.status(500).send('sorry, you broke this location.');
     }
