@@ -7,9 +7,11 @@ const express = require('express'); //npm i express
 const app = express();
 const cors = require('cors'); // npm i cors
 const pg = require('pg');
+
 const GEO_API_KEY = process.env.GEO_API_KEY; //keys are in the env
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const TRAIL_API_KEY = process.env.TRAIL_API_KEY;
+const MOVIE_DATABASE_KEY = process.env.MOVIE_DATABASE_KEY;
 
 //1 assign port 
 const PORT = process.env.PORT;
@@ -43,7 +45,9 @@ app.use(cors()); // if you dont use this you'll get a coors error.
 app.get('/location', handleLocation);
 app.get('/weather', handleWeather);
 app.get('/trails', handleTrails);
-// app.get('/add', handleAdd);
+app.get('/movies', handleMovies);
+
+
 // this builds an object with the data coming in.
 function Location(geoData, city) {
     this.search_query = city;
@@ -71,10 +75,42 @@ function Trails(trail) {
     this.condition_time = trail.conditionDate.split(' ')[1];
 }
 
+function Movie(movies) {
+    this.title = movies.original_title;
+    this.overview = movies.overview;
+    this.average_votes = movies.vote_average;
+    this.total_votes = movies.vote_count;
+    this.image_url = `https://image.tmdb.org/t/p/w500/${movies.poster_path}`;
+    this.popularity = movies.popularity;
+    this.released_on = movies.release_date;
+}
+
+function handleMovies(request, response) {
+    try {
+        const city = request.query.search_query;
+        // console.log("request", request.query.search_query);
+        const url = `https://api.themoviedb.org/3/search/movie?api_key=${MOVIE_DATABASE_KEY}&language=en-US&query=${city}&page=1&include_adult=false`;
+
+        superagent.get(url)
+            .then(data => {
+                let movieStuff = data.body.results;
+                console.log('moviestuff', movieStuff); // data is coming in/ body is the body/ movie is whatever I want it to be
+                let title = movieStuff.map(pass => { // map goes through each item in the constructor function.
+                    return new Movie(pass); //and returns new object
+                });
+                response.send(title); //sends movie as response
+            })
+            .catch(err =>{
+                console.error('return', err)});
+    } catch (error) {
+        response.status(500).send(`sorry, can't find that movie`);
+    }
+}
 
 function handleLocation(request, response) {
     try {
         const city = request.query.city;
+        console.log("city", city);
         const url = `https://us1.locationiq.com/v1/search.php?key=${GEO_API_KEY}&q=${city}&format=json&limit=1`
         let search_query = [request.query.city]; //PG wants request in square brackets
         let SQL = 'SELECT * FROM location WHERE search_query = $1;';  //checks table to see if anything is there. 
@@ -99,13 +135,6 @@ function handleLocation(request, response) {
                         });
                 }
             })
-        // sudo https://baseurl${api key} & query input/query(city) & fileType & numberOf
-        // superagent.get(url) //hey super agent go to this url
-        //     .then(data => {         // and get this data
-        //         const geoData = data.body[0];
-        //         const locationData = new Location(geoData, city);
-        //         response.json(locationData);
-            // });
     } catch (error) {
         response.status(500).send('sorry, you broke this location.');
     }
