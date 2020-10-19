@@ -12,6 +12,7 @@ const GEO_API_KEY = process.env.GEO_API_KEY; //keys are in the env
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const TRAIL_API_KEY = process.env.TRAIL_API_KEY;
 const MOVIE_DATABASE_KEY = process.env.MOVIE_DATABASE_KEY;
+const YELP_API_KEY = process.env.YELP_API_KEY;
 
 //1 assign port 
 const PORT = process.env.PORT;
@@ -46,6 +47,7 @@ app.get('/location', handleLocation);
 app.get('/weather', handleWeather);
 app.get('/trails', handleTrails);
 app.get('/movies', handleMovies);
+app.get('/yelp', handleYelp);
 
 
 // this builds an object with the data coming in.
@@ -85,23 +87,51 @@ function Movie(movies) {
     this.released_on = movies.release_date;
 }
 
+function Business(businesses) {
+    this.name = businesses.name;
+    this.image_url = businesses.image_url;
+    this.price = businesses.price;
+    this.rating = businesses.rating;
+    this.url = businesses.url;
+}
+
+function handleYelp(request, response) {
+    try {
+        const city = request.query.search_query;
+        console.log("yelp city is ", city);
+        const url = `https://api.yelp.com/v3/businesses/search?location=${city}`;
+        superagent.get(url)
+            .set('Authorization', `Bearer ${YELP_API_KEY}`) // this app uses a bearer token
+            .then(data => {
+                let bizz = data.body.businesses.map(ditto => {
+                    return new Business(ditto);
+                });
+                response.send(bizz);
+            })
+            .catch(err => {
+                console.error('return', err)
+            });
+    } catch (error) {
+        response.status(500).send(`sorry, can't find that business`);
+    }
+}
+
 function handleMovies(request, response) {
     try {
         const city = request.query.search_query;
-        // console.log("request", request.query.search_query);
         const url = `https://api.themoviedb.org/3/search/movie?api_key=${MOVIE_DATABASE_KEY}&language=en-US&query=${city}&page=1&include_adult=false`;
 
         superagent.get(url)
             .then(data => {
-                let movieStuff = data.body.results;
-                console.log('moviestuff', movieStuff); // data is coming in/ body is the body/ movie is whatever I want it to be
+                let movieStuff = data.body.results; // data is coming in/ body is the body/ 
                 let title = movieStuff.map(pass => { // map goes through each item in the constructor function.
                     return new Movie(pass); //and returns new object
                 });
                 response.send(title); //sends movie as response
             })
-            .catch(err =>{
-                console.error('return', err)});
+            .catch(err => {
+                console.error('return', err)
+            });
     } catch (error) {
         response.status(500).send(`sorry, can't find that movie`);
     }
@@ -110,7 +140,6 @@ function handleMovies(request, response) {
 function handleLocation(request, response) {
     try {
         const city = request.query.city;
-        console.log("city", city);
         const url = `https://us1.locationiq.com/v1/search.php?key=${GEO_API_KEY}&q=${city}&format=json&limit=1`
         let search_query = [request.query.city]; //PG wants request in square brackets
         let SQL = 'SELECT * FROM location WHERE search_query = $1;';  //checks table to see if anything is there. 
